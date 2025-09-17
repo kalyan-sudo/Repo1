@@ -1,6 +1,3 @@
-macros/import_S3_to_snowflake_csv.sql
-=====================================
-
 {% macro import_s3_to_snowflake_csv(bucket,folder,pattern,model,table,file_format={},copy_options={}) %}
 {# 
     bucket:
@@ -76,48 +73,47 @@ macros/import_S3_to_snowflake_csv.sql
 
     {% set load_table = 'load_' ~ table %}
 
-    {% set guarded_load %}
-        DECLARE
-            row_count NUMBER := 0;
-        BEGIN
-            CREATE OR REPLACE TABLE {{database}}.{{schema}}.{{load_table}} LIKE {{database}}.{{schema}}.{{table}};
+    EXECUTE IMMEDIATE $$
+    DECLARE
+        row_count NUMBER := 0;
+    BEGIN
+        CREATE OR REPLACE TABLE {{database}}.{{schema}}.{{load_table}} LIKE {{database}}.{{schema}}.{{table}};
 
-            COPY INTO {{database}}.{{schema}}.{{load_table}}
-            FROM {{location}}
-            storage_integration = {{ env_var("DBT_S3_TO_SNOWFLAKE_INT") }}
-            PATTERN = '{{ pattern }}'
-            FILE_FORMAT = (
-                TYPE=csv
-                COMPRESSION=AUTO,
-                FIELD_DELIMITER = ',',
-                SKIP_HEADER=1,
-                SKIP_BLANK_LINES=TRUE,
-                TRIM_SPACE=TRUE,
-                FIELD_OPTIONALLY_ENCLOSED_BY='"',
-                {{ null_if }} {# whole line is omitted if no values present for null_if conditions #}
-                ERROR_ON_COLUMN_COUNT_MISMATCH=TRUE,
-                REPLACE_INVALID_CHARACTERS=TRUE,
-                EMPTY_FIELD_AS_NULL=TRUE
-            )
-            ON_ERROR='{{ on_error }}'
-            PURGE=FALSE
-            TRUNCATECOLUMNS=FALSE
-            FORCE=FALSE
-            ;
+        COPY INTO {{database}}.{{schema}}.{{load_table}}
+        FROM '{{ location }}'
+        storage_integration = {{ env_var("DBT_S3_TO_SNOWFLAKE_INT") }}
+        PATTERN = '{{ pattern }}'
+        FILE_FORMAT = (
+            TYPE=csv,
+            COMPRESSION=AUTO,
+            FIELD_DELIMITER = ',',
+            SKIP_HEADER=1,
+            SKIP_BLANK_LINES=TRUE,
+            TRIM_SPACE=TRUE,
+            FIELD_OPTIONALLY_ENCLOSED_BY='"',
+            {{ null_if }}
+            ERROR_ON_COLUMN_COUNT_MISMATCH=TRUE,
+            REPLACE_INVALID_CHARACTERS=TRUE,
+            EMPTY_FIELD_AS_NULL=TRUE
+        )
+        ON_ERROR='{{ on_error }}'
+        PURGE=FALSE
+        TRUNCATECOLUMNS=FALSE
+        FORCE=FALSE
+        ;
 
-            SELECT COUNT(*) INTO row_count FROM {{database}}.{{schema}}.{{load_table}};
+        SELECT COUNT(*) INTO row_count FROM {{database}}.{{schema}}.{{load_table}};
 
-            IF (row_count = 0) THEN
-                DROP TABLE IF EXISTS {{database}}.{{schema}}.{{load_table}};
-                RAISE STATEMENT_ERROR WITH MESSAGE = 'S3 import aborted: no data found for {{location}} with pattern {{pattern}}';
-            ELSE
-                TRUNCATE TABLE {{database}}.{{schema}}.{{table}};
-                INSERT INTO {{database}}.{{schema}}.{{table}}
-                SELECT * FROM {{database}}.{{schema}}.{{load_table}};
-                DROP TABLE IF EXISTS {{database}}.{{schema}}.{{load_table}};
-            END IF;
-        END;
-    {% endset %}
-    {{ guarded_load }}
+        IF (row_count = 0) THEN
+            DROP TABLE IF EXISTS {{database}}.{{schema}}.{{load_table}};
+            RAISE STATEMENT_ERROR WITH MESSAGE = 'S3 import aborted: no data found for {{location}} with pattern {{pattern}}';
+        ELSE
+            TRUNCATE TABLE {{database}}.{{schema}}.{{table}};
+            INSERT INTO {{database}}.{{schema}}.{{table}}
+            SELECT * FROM {{database}}.{{schema}}.{{load_table}};
+            DROP TABLE IF EXISTS {{database}}.{{schema}}.{{load_table}};
+        END IF;
+    END;
+    $$;
 
 {% endmacro %}

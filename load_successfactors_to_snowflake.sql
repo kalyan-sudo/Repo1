@@ -1,6 +1,3 @@
-models/wmhs/STG/load_successfactors_to_snowflake.sql
-=====================================================
-
 {% set aws_domain = "wmoraclecloud-" ~ env_var("DBT_AWS_DOMAIN") %}
 
 {{
