@@ -106,7 +106,7 @@
 
         IF (row_count = 0) THEN
             DROP TABLE IF EXISTS {{database}}.{{schema}}.{{load_table}};
-            RAISE STATEMENT_ERROR WITH MESSAGE = 'S3 import aborted: no data found for {{location}} with pattern {{pattern}}';
+            RAISE STATEMENT_ERROR USING MESSAGE = 'S3 import aborted: no data found for {{location}} with pattern {{pattern}}';
         ELSE
             TRUNCATE TABLE {{database}}.{{schema}}.{{table}};
             INSERT INTO {{database}}.{{schema}}.{{table}}
