@@ -105,7 +105,7 @@ macros/import_S3_to_snowflake_csv.sql
             FORCE=FALSE
             ;
 
-            SELECT COUNT(*) INTO :row_count FROM {{database}}.{{schema}}.{{load_table}};
+            SELECT COUNT(*) INTO row_count FROM {{database}}.{{schema}}.{{load_table}};
 
             IF (row_count = 0) THEN
                 DROP TABLE IF EXISTS {{database}}.{{schema}}.{{load_table}};
@@ -114,6 +114,7 @@ macros/import_S3_to_snowflake_csv.sql
                 TRUNCATE TABLE {{database}}.{{schema}}.{{table}};
                 INSERT INTO {{database}}.{{schema}}.{{table}}
                 SELECT * FROM {{database}}.{{schema}}.{{load_table}};
+                DROP TABLE IF EXISTS {{database}}.{{schema}}.{{load_table}};
             END IF;
         END;
     {% endset %}
