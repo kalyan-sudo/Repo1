@@ -13,7 +13,7 @@
                 file_format={
                     "null_if": ["(None identified)", "", "(None Identified)"]
                 },
-                copy_options={"on_error": "SKIP_FILE"},
+                copy_options={"on_error": "SKIP_FILE"}
             )
         ],
         post_hook=["DROP TABLE IF EXISTS load_stg_wmhs_successfactors_details"],
